@@ -1,6 +1,6 @@
 ---
 title: "HW2 STA521 Fall18"
-author: '[Your Name Here, netid and github username here]'
+author: 'Eduardo Coronado - ec243 - ecoronado92'
 date: "Due September 23, 2018 5pm"
 output:
   pdf_document: default
