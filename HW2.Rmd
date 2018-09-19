@@ -36,7 +36,7 @@ library(car)
 ```
 
 
-1. Create a summary of the data.  How many variables have missing data?  Which are quantitative and which are qualtitative?  
+\textbf{1. Create a summary of the data.  How many variables have missing data?  Which are quantitative and which are qualtitative?}  
 From the summary data below 6 out of the 7 variables have missing data, with `ModernC` and `Frate` being the ones with most NAs present. Also from the metadata we know that only 125 observations out of 210 have complete data for all variables.
 ```{r, echo=FALSE}
 summary(UN3)
@@ -49,7 +49,7 @@ str(UN3, strict.width="cut")
 ```
 
 \pagebreak
-2. What is the mean and standard deviation of each quantitative predictor?  Provide in a nicely formatted table.
+\textbf{2. What is the mean and standard deviation of each quantitative predictor?  Provide in a nicely formatted table}
 
 ```{r, echo=FALSE}
 m = sapply(UN3, mean, na.rm=TRUE)
@@ -59,11 +59,15 @@ kable(m_sd_mat, format = "markdown", col.names = c("Mean", "Standard Dev"), digi
 ```
 
 
-3. Investigate the predictors graphically, using scatterplots or other tools of your choice. Create some plots highlighting the relationships among the predictors. Comment on your findings regarding trying to predict `ModernC` from the other variables.  Are there potential outliers, nonlinear relationships or transformations that appear to be needed based on your graphical EDA?  
+\textbf{3. Investigate the predictors graphically, using scatterplots or other tools of your choice. Create some plots highlighting the relationships among the predictors. Comment on your findings regarding trying to predict `ModernC` from the other variables.  Are there potential outliers, nonlinear relationships or transformations that appear to be needed based on your graphical EDA?}  
 
 
-```{r, fig.width=8, fig.height=6, echo=FALSE, warning=FALSE}
-pairs(UN3[,2:7], main ="Fig 1. Pairwise Comparisons of Quanitative Predictor Variables from UN3 Dataset")
+```{r Fig 1, fig.width=8, fig.height=5, echo=FALSE, warning=FALSE}
+ggpairs(UN3[,2:7], progress=FALSE,
+        upper = list(continuous = wrap("cor", size = 3) ),
+        main ="Fig 1. Pairwise Comparisons of Quanitative Predictor Variables from UN3 Dataset") +
+  theme_bw(base_size = 10) + 
+  theme(axis.text = element_text(size = 5.5), plot.title = element_text(size =15))
 ```
 Using the `pairs` function we can do an initial assessment of the relationships among the predictor values. From \textbf{Fig 1} above it is easy to notice at first glance that many relationships among predictor variables seem non-linear. The relationships between the `Change`, `PUrban` and `Fertility` variables seem to be the ones that mostly resemble a somewhat linear relationship. The `Frate` variable does seems to have a non-multicolinear relationship with some of the variables. However, two plots standout from this plot - `PPgdp` and `Pop`. The `PPgdp` predictor's relationships seem to follow an increasing or decreasing exponential, while the `Pop` helps signal what seem to be two clear outliers (\textbf{Fig2}, below). From this plot we can see that China and India seem as outliers in terms of population vs other countries.
 
@@ -82,77 +86,109 @@ UN3_log = UN3 %>% rownames_to_column() %>%
   column_to_rownames("rowname")
 ggpairs(UN3_log[,c(-1,-3,-5,-6)], progress = FALSE,
         upper = list(continuous = wrap("cor", size = 3) ), 
-        title="Fig 3. Pairwise Comparisons of Transformed Predictor Variables from UN3 Dataset") + 
+        title="Fig 3. Pairwise Comparisons of Transformed Predictor Variables from UN3 Dataset") +
   theme_bw(base_size = 10) + 
   theme(axis.text = element_text(size = 5.5), plot.title = element_text(size =15))
 ``` 
   
 \pagebreak
-Finally, from \textbf{Fig 4} below we can see that a linear combination of the predictor variables could be helpful to predict `ModernC` given these seem to follow a linear relationship. However, it is important to note that some predictors exhibit multicolinearily which means adding them to the linear model would be redundant as these would be contributing the same variance to the response variable. It is something that we should consider as we continue to build and assess the fit of the model.
-
+Finally, we can see that a linear combination of the predictor variables could be helpful to predict `ModernC` given these seem to follow a linear relationship, some with would need transformations and others without transformations. However, it is important to note that some predictors exhibit multicolinearily which means adding them to the linear model would be redundant as these would be contributing the same variance to the response variable. It is something that we should consider as we continue to build and assess the fit of the model.
+  
+  
 ```{r Fig4, echo=FALSE, warning=FALSE, fig.width=20, fig.height=12, results="hide" }
-ggpairs(UN3[,c(-3,-5,-6)], progress = FALSE, 
-        upper = list(continuous = wrap("cor", size = 10) ), 
-        title="Fig 4. Pairwise Comparison of Six Predictor Variables and `ModernC` Response Variable from the UN3 Dataset") + 
-  theme_bw(base_size = 25) + 
-  theme(axis.text = element_text(size = 12), plot.title = element_text(size = 25))
-setorderv(UN3,c("Pop"), order = -1, na.last = TRUE)
+#ggpairs(UN3[,c(-3,-5,-6)], progress = FALSE, 
+ #       upper = list(continuous = wrap("cor", size = 10) ), 
+  #      title="Fig 4. Pairwise Comparison of Six Predictor Variables and `ModernC` Response Variable from the UN3 Dataset") + 
+  #theme_bw(base_size = 25) + 
+  #theme(axis.text = element_text(size = 12), plot.title = element_text(size = 25))
 ```
 
 
-\pagebreak
-## Model Fitting  
-4.  Use the `lm()` function to perform a multiple linear regression with `ModernC` as the response and all other variables as the predictors, using the formula `ModernC ~ .`, where the `.` includes all remaining variables in the dataframe.  Create  diagnostic residual plot from the linear model object and comment on results regarding assumptions.  How many observations are used in your model fitting?  
+\textbf{4.  Use the `lm()` function to perform a multiple linear regression with `ModernC` as the response and all other variables as the predictors, using the formula `ModernC ~ .`, where the `.` includes all remaining variables in the dataframe.  Create  diagnostic residual plot from the linear model object and comment on results regarding assumptions.  How many observations are used in your model fitting?}  
   
-\textbf{Fig 5. Diagnostic Residual Plots for a Linear Model Fit of `ModernC`}  
+From from the initial comparisons in \textbf{Fig3} we know that the predictor variables have a linear relationship which allows us to interpret these multiple regression diagnostic plots as those of a simple regression model. \textit{\textbf{Note}: the above linear model and diagnostic plots were done using the original, non-transformed data}  
+Using the `summary` function, we notice that the `lm` function automatically excluded 85 observations. Therefore, the multiple regression model was done 125 observations. Looking at \textbf{Fig 5} we can notice a minor heteroscedastic trend on the top-left plot, which shows that the variances is non-constant. However, this trend isn't that significant thus our assumptions of linearity still hold. On the Normal Q-Q plot we observe some points diverging from the normal line - especially on the top-right - which means our data follows a skewd normal distribution. Yet, our linerity assumption still holds as the observed standard deviations seem to follow the theortical ones. Similarly, show that the errors for some observations are above 1 standard deviation and there are observations having a higher influence on the fit (i.e. China and India). However, these aren't significant enough to discard our assumptions of linearity. Overall, Cook's Island, Azerbaijian, Poland, China, and India are likely candidates for outlier testing given these observations tend to be farther away from the rest of the data or are highly influencial.  
 
-```{r, echo=FALSE, fig.width=8, fig.height=8}
+\pagebreak
+\textit{\textbf{Fig 5. Residual Plots for a Linear Model Fit of `ModernC`}}  
+
+```{r, echo=FALSE, fig.width=8, fig.height=6}
 modern_lm = lm(ModernC ~ . , data = UN3[,-8:-10])
 #summary(modern_lm)
 par(mfrow=c(2,2))
 plot(modern_lm, ask=F)
 ```
-
-From from the initial comparisons in \textbf{Fig4} we know that the predictor variables have a linear relationship which allows us to interpret these multiple regression diagnostic plots as those of a simple regression model. \textit{\textbf{Note}: the above linear model and diagnostic plots were done using the original, non-transformed data}  
   
-Using the `summary` function, we notice that the `lm` function automatically excluded 85 observations. Therefore, the multiple regression model was done 125 observations. Looking at these plots we can notice a minor heteroscedastic trend on the top-left plot, which shows that the variances is non-constant. However, this trend isn't that significant thus our assumptions of linearity still hold. On the Normal Q-Q plot we observe some points diverging from the normal line - especially on the top-right - which means our data follows a skewd normal distribution. Yet, our linerity assumption still holds as the observed standard deviations seem to follow the theortical ones. Similarly, show that the errors for some observations are above 1 standard deviation and there are observations having a higher influence on the fit (i.e. China and India). However, these aren't significant enough to discard our assumptions of linearity. Overall, Cook's Island, Azerbaijian, Poland, China, and India are likely candidates for outlier testing given these observations tend to be farther away from the rest of the data or are highly influencial.
-
-5. Examine added variable plots `car::avPlot` or `car::avPlots`  for your model above. Are there any plots that suggest that transformations are needed for any of the terms in the model? Describe. Is it likely that any of the localities are influential for any of the terms?  Which localities?  Which terms?  
+  
+\textbf{5. Examine added variable plots `car::avPlot` or `car::avPlots`  for your model above. Are there any plots that suggest that transformations are needed for any of the terms in the model? Describe. Is it likely that any of the localities are influential for any of the terms?  Which localities?  Which terms?}  
   
 From the plots in \textbf{Fig 6} we can observe that a transformation on the `Pop` term would be helpful. This is noticeble by the large amount of data points concentrated around zero while only China and India seem to be spread out. Adding a linear transformation, such as `log`, would help to reduce the skewedness of the plot by expanding those values near zero and contracting those away from zero. It could also help reduce the current influence of the China/India observations on the fit of the model.  
 It is also noticeable how certain countries are influential for specific terms. For example, Kuwait and Cook's Island are an influential point for `Change`. India and China, as seen before, are influential on the `Pop` term. Noticeably, these plots brought up new influential localities for specific terms such as Norway and Switzerland for `PPgdp`, Niger and Thailand for `Fertility`, Yemen and Burundi for `Frate`, and Sri Lanka and Thailand for `Purban`. Again, we can notice previous localities such as Poland, Azerbaijian, and Cook's Island as being influential for certain terms such as `PPgdp` or `Purban`, among others.  
-Overall, from these plots we can notice the explanatory power of each predictor on the response variable after accounting for all the other predictors. From the slope we can notice almost all terms have either a positive or negative linear relationship with the response variable and thu contribute to explain the variability. `PUrban` and `Frate` seem to have the least explanatory power after accounting for all other predictors. A possible cause for this would be an existing multi-colinear relationship with another term already accounted in the linear model.
-```{r}
+Overall, from these plots we can notice the explanatory power of each predictor on the response variable after accounting for all the other predictors. From the slope we can notice almost all terms have either a positive or negative linear relationship with the response variable and thu contribute to explain the variability. `PUrban` and `Frate` seem to have the least explanatory power after accounting for all other predictors. A possible cause for this would be an existing multi-colinear relationship with another term already accounted in the linear model.  
+  
+```{r Fig 6, echo=FALSE, fig.height=7}
 avPlots(model = modern_lm, main="Fig 6. Added-Variable Plots for 6 Predictors of `modern_lm` Model")
 ```
 
-6.  Using the Box-Tidwell  `car::boxTidwell` or graphical methods find appropriate transformations of the predictor variables to be used as predictors in the linear model.  If any predictors are negative, you may need to transform so that they are non-negative.  Describe your method and the resulting transformations.  
-As mentioned in the previous question, `Pop` seemed as the a candidate that would mostly benefit from a transformation given most of the data is all clustered near zero with two points spread far away. Using the `boxTidwell` built-in function the optimal transformation for $(Pop)^{\lambda}$ is  $\lambda =0.5$ which is close to the MLE of lambda given by `boxTidwell` $\lambda = 0.63$. In other words, $\sqrt{Pop}$.I tested for other predictors as well and although there were transformations that would help optimize the predictors for linearity, these didn't seem to aid in the interpretation. For example, the optimal transformation for `Fertility` was $\lambda = \frac{3}{2}$, however if we were to interpret what a change in $\sqrt{(Fertility^3)}$ means for `ModernC` it wouldn't be intuitive. Similar examples happened with other predictors such as `PPgdp` with $\lambda = .12$ and `Purban` with $\lambda = 2$  were optimal transformations, but these transformations wouldn't aid our interpretation which is our end goal.
+\textbf{6.  Using the Box-Tidwell  `car::boxTidwell` or graphical methods find appropriate transformations of the predictor variables to be used as predictors in the linear model.  If any predictors are negative, you may need to transform so that they are non-negative.  Describe your method and the resulting transformations.} 
+  
+As mentioned in the previous question, `Pop` seemed as the most promising candidate that would benefit from a transformation given the data was clustered near zero with two points spread far away. Using the `boxTidwell` built-in function the optimal transformation is close to $\lambda =0.5$ (i.e $\sqrt{Pop}$). However, from this method the transformation does not significantly improve the fit as shown my a non-significant p-value (i.e. the transformation isn't significantly different from $\lambda = 1$ - our $H_0$. I similarly tested other predictors, but the suggested transformations  didn't provide enougt evidence to reject the $H_0$. Just to double check that highly influential points on `Pop` such as China and India weren't giving us a different transform estimation, I removed them from a modified dataframe and re-test. Even removing this we fail to reject $H_0$.  
+However, graphically from \textbf{Fig 3} we can see that a `log()` transformation does improve the linear relationship between the `Pop`, `PPgdp` and `ModernC` - thus I will use these transformations.
 
-```{r boxtidwell, echo=FALSE}
-#UN3_bxtdw = na.exclude(UN3)
-boxTidwell(ModernC ~ Pop , other.x = ~ Change + PPgdp + Frate + Fertility + Purban, data=UN3)
-#boxTidwell(ModernC ~ Pop + Fertility , other.x = ~ Change + PPgdp + Frate  + Purban, data=UN3)
-#boxTidwell(ModernC ~ Pop + Purban  , other.x = ~ Change + PPgdp + Frate + Fertility , data=UN3)
+```{r, echo=FALSE, warning=FALSE, results='hide'}
+UN3_bxtdw = na.omit(UN3)
+UN3_bxtdw["Change"] = UN3_bxtdw["Change"] + 2
+boxTidwell(ModernC ~  Pop + PPgdp  + Frate, other.x = ~ Change + Fertility + Purban, data=UN3_bxtdw)
+boxTidwell(ModernC ~  Purban  , other.x = ~ Change + PPgdp + Pop +Frate + Fertility , data=UN3_bxtdw)
+
+#UN3_no_Ch_In = UN3_bxtdw %>% rownames_to_column() %>% filter(!rownames(UN3_bxtdw) %in% c("China", "India")) %>% column_to_rownames("rowname")
+#UN3_less_lm = lm(ModernC ~ ., data = UN3_no_Ch_In)
+#boxTidwell(ModernC ~ Pop, other.x = ~ Change + PPgdp + Purban +Frate + Fertility , data=UN3_no_Ch_In)
+#avPlots(UN3_less_lm)
 ```
 
-7. Given the selected transformations of the predictors, select a transformation of the response using `MASS::boxcox` or `car::boxCox` and justify.
+\pagebreak
 
+\textbf{7. Given the selected transformations of the predictors, select a transformation of the response using `MASS::boxcox` or `car::boxCox` and justify.}  
+  
+From the plot below we can observe the MLE for $\lambda$ using `boxCox`. Since the 95% confidence interval doesn't include 1 and the `boxCox` $\lambda = 0.76$ I decided to use the closest $\lambda$ that would still allow for interpretable results $\lambda = 0.5$. This was train of thought is justified given we want a model that improved by a transformation, however we don't want it to be complicated when interpreting results.
 
-```{r boxCox, echo=FALSE}
-boxCox(modern_lm)
+```{r boxCox, echo=FALSE, fig.width=8, fig.height=5}
+modern_prlog_lm = lm(ModernC ~ ., data = UN3_log[,c(-3,-5,-10)]) #lm w transformed PPgdp,Pop
+#summary(modern_prlog_lm)
+boxCox(modern_prlog_lm)
+lambda_y = powerTransform(modern_prlog_lm)$lambda
 ```
 
-8.  Fit the regression using the transformed variables.  Provide residual plots and added variables plots and comment.  If you feel that you need additional transformations of either the response or predictors, repeat any steps until you feel satisfied.
-```{r}
+\textbf{8.  Fit the regression using the transformed variables.  Provide residual plots and added variables plots and comment.  If you feel that you need additional transformations of either the response or predictors, repeat any steps until you feel satisfied.}  
+  
+From the previous question I had decided to use $\lambda = 0.5$ for the response variable given it was close to the significant MLE for this parameter. However, after plotting the residual and added variable plots I noticed this transformation wasn't benefitial. After trying the $\lambda$'s MLE and $\lambda=1$, I decided to proceed with the later given it improves the model and interpretability. Thus in \textbf{Fig 7} we observe the residual plots for,
+$$ModernC = \beta_0 + \beta_1Change + \beta_2logPPgdp + \beta_3Frate + \beta_4logPop + \beta_5Frate + \beta_6Purban$$
+Compared to \textbf{Fig 5}, we can observe two improvements: 1) we don't see any highly influential observations with a Cook's Distance that would raise a red flag, 2) there is a minor correction of the points in both tails toward the diagonal line in the Normal Q-Q. Even when the transformations did very slight corrections to the minor heteroscedastic trends, these are still within reasonable bounds.
 
+\textit{\textbf{Fig 7. Residual Plots for a Transformed Linear Model Fit of `ModernC`}}  
+```{r Q8 part 1, echo=FALSE, fig.width=8, fig.height=6}
+modern_lm2 = lm(ModernC ~ ., data = UN3_log[,c(-3,-5,-10)])
+#summary(modern_lm2)
+par(mfrow=c(2,2))
+plot(modern_lm2, ask=F)
 ```
+  
+  
+Comparing the added-variable plots, we can see that in \textbf{Fig 8} two changes on the transformed predictors compared to the plots of \textbf{Fig 6}. `logPop` plot's slope is less prominent than without a transformation due to the fact that now have China or India are close to the other observations and not dictating the value of the coefficient. In `lopPPgdp` the data is closer to each other as expected with the transformation and we don't see Norway or Switzerland as potential as we did before.
 
+```{r Q8 part 2, echo=FALSE, fig.width=8, fig.height=6}
+avPlots(model = modern_lm2, main="Fig 8. Added-Variable Plots for 6 Predictors of `modern_lm2` Model")
+```
 9. Start by finding the best transformation of the response and then find transformations of the predictors.  Do you end up with a different model than in 8?
 
 
 ```{r}
-
+#boxCox(modern_lm)
+#powerTransform(modern_lm)
+UN3_bxtdw2 = UN3_bxtdw
+UN3_bxtdw2["ModernC"] = sqrt(UN3_bxtdw["ModernC"])
+#boxTidwell()
 ```
 
 10.  Are there any outliers or influential points in the data?  Explain.  If so, refit the model after removing any outliers and comment on residual plots.
@@ -183,7 +219,32 @@ boxCox(modern_lm)
 ## Methodology
 
     
-13. Prove that the intercept in the added variable scatter plot will always be zero.  _Hint:  use the fact that if $H$ is the project matrix which contains a column of ones, then $1_n^T (I - H) = 0$.  Use this to show that the sample mean of residuals will always be zero if there is an intercept._
+13. Prove that the intercept in the added variable scatter plot will always be zero.  _Hint:  use the fact that if $H$ is the project matrix which contains a column of ones, then $1_n^T (I - H) = 0$.  Use this to show that the sample mean of residuals will always be zero if there is an intercept.  
+\textbf{Before starting some clarifications on the notation:}
+* $\hat Y_{(j)}$ refers to the Y vector regressed on all the predictors minus the $j^{th}$ predictor
+* $\hat X_{j(j)}$ refers the $j^{th}$ predictor being regressed on the rest of the predictors (i.e. we regress the $j^{th}$ predictor as if it were a response variable on the X matrix without this $j^{th}$ predictor)
+* Therefore, $X_{j} - \hat X_{j(j)} = \hat e_{j(j)}$ refers to the residuals from the regression of predictor $j$ on the X matrix without the $j$ predictor.
+* Similarly, $Y - \hat Y_{(j)} = \hat e_{(j)}$ refers to the residuals from the regression the Y vector on the X matrix without the $j$ predictor
+* Althought the correct notation for the hat matrix would be $H_{(j)}$, we will use $H$ for simplicity given both regressions use the same hat matrix
+  
+Knowing the above we can prove that $\beta_0$ of an added variable plot will always be zero from,
+\begin{gather*}
+\hat e_{(j)} =  \vec{1}\hat \beta_0 + \hat \beta_j \hat e_{j(j)}
+\end{gather*}
 
+which takes the form similar to $Y = \hat \beta_0 + \hat \beta_1 X_1$. Thus we can find $\hat \beta_j$ using the $(X^T X)^{-1} X^T Y$ notation, but now using $X \equiv \hat e_{j(j)}$ and $Y \equiv \hat e_{(j)}$.
+\begin{gather*}
+\hat e_{(j)} =  \vec{1}\hat \beta_0 + \overbrace{\bigg[ \big((I-H)X_{j}\big) ^T (I-H)X_{j}\bigg]^{-1} \bigg[(I-H)X_{j}\bigg]^T Y}^{\hat \beta_j} \;(I-H)X_j \\[1ex]
+= \vec{1}\hat \beta_0 + \bigg[ X_{j}^T \underbrace{(I-H)(I-H)}_{ (I-H)}X_{j}\bigg]^{-1} \underbrace{X_{j}^T(I-H)Y}_{1x1\: scalar} \underbrace{(I-H)X_j}_{1x1\: scalar}
+\end{gather*}
+
+If you multiply both sides by $X_{j}^T$ and rearrange the scalars you get,
+\begin{gather*}
+X_{j}^T (I-H) Y = X_{j}^T \vec{1}\hat \beta_0 +  \underbrace{X_{j}^T (I-H)X_j\big[ X_{j}^T (I-H) X_{j}\big]^{-1}}_{I} X_{j}^T (I-H)Y \\[1ex]
+\therefore \qquad X_{j}^T (I-H) Y = \sum{X_{i,j}}_{i=1}^n \hat \beta_0 + X_{j}^T (I-H) Y\\[1ex]
+\sum{X_{i,j}}_{i=1}^n \hat \beta_0 = X_{j}^T (I-H) Y - X_{j}^T (I-H) Y = 0
+\end{gather*}
+
+Thus we can see that the only way this relationship can only be zero is if $\hat \beta_0 = 0$ (i.e. the intercept is $0$).
 
 14. For multiple regression with more than 2 predictors, say a full model given by `Y ~ X1 + X2 + ... Xp`   we create the added variable plot for variable `j` by regressing `Y` on all of the `X`'s except `Xj` to form `e_Y` and then regressing `Xj` on all of the other X's to form `e_X`.  Confirm that the slope in a manually constructed added variable plot for one of the predictors  in Ex. 10 is the same as the estimate from your model. 
