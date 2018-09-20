@@ -164,35 +164,36 @@ lambda_y = powerTransform(modern_prlog_lm)$lambda
   
 From the previous question I had decided to use $\lambda = 0.5$ for the response variable given it was close to the significant MLE for this parameter. However, after plotting the residual and added variable plots I noticed this transformation wasn't benefitial. After trying the $\lambda$'s MLE and $\lambda=1$, I decided to proceed with the later given it improves the model and interpretability. Thus in \textbf{Fig 7} we observe the residual plots for,
 $$ModernC = \beta_0 + \beta_1Change + \beta_2logPPgdp + \beta_3Frate + \beta_4logPop + \beta_5Frate + \beta_6Purban$$
-Compared to \textbf{Fig 5}, we can observe two improvements: 1) we don't see any highly influential observations with a Cook's Distance that would raise a red flag, 2) there is a minor correction of the points in both tails toward the diagonal line in the Normal Q-Q. Even when the transformations did very slight corrections to the minor heteroscedastic trends, these are still within reasonable bounds.
+Compared to \textbf{Fig 5}, we can observe two improvements: 1) we don't see the previous high leverage points (China/India) near a Cook's Distance that would raise a red flag for influential points nor any other point, 2) there is a minor correction of the points in both tails toward the diagonal line in the Normal Q-Q. Even when the transformations did very slight corrections to the minor heteroscedastic trends, these are still within reasonable bounds.
 
 \textit{\textbf{Fig 7. Residual Plots for a Transformed Linear Model Fit of `ModernC`}}  
 ```{r Q8 part 1, echo=FALSE, fig.width=8, fig.height=6}
 modern_lm2 = lm(ModernC ~ ., data = UN3_log[,c(-3,-5,-10)])
-#summary(modern_lm2)
+summary(modern_lm2)
 par(mfrow=c(2,2))
 plot(modern_lm2, ask=F)
 ```
   
   
-Comparing the added-variable plots, we can see that in \textbf{Fig 8} two changes on the transformed predictors compared to the plots of \textbf{Fig 6}. `logPop` plot's slope is less prominent than without a transformation due to the fact that now have China or India are close to the other observations and not dictating the value of the coefficient. In `lopPPgdp` the data is closer to each other as expected with the transformation and we don't see Norway or Switzerland as potential as we did before.
+Comparing the added-variable plots, we can see that in \textbf{Fig 8} two changes on the transformed predictors compared to the plots of \textbf{Fig 6}. `logPop` plot's slope is less prominent than without a transformation  now that we have China or India closer to the other observations and not dictating the value of the coefficient. In `lopPPgdp` the data is closer to each other as expected with the transformation and we don't see Norway or Switzerland as potential as we did before.
 
 ```{r Q8 part 2, echo=FALSE, fig.width=8, fig.height=6}
 avPlots(model = modern_lm2, main="Fig 8. Added-Variable Plots for 6 Predictors of `modern_lm2` Model")
 ```
-9. Start by finding the best transformation of the response and then find transformations of the predictors.  Do you end up with a different model than in 8?
+\textbf{9. Start by finding the best transformation of the response and then find transformations of the predictors.  Do you end up with a different model than in 8?}  
+  
+Yes we would have a slightly different model if we start with a transformation for the response that is close to the MLE of $\lambda=0.78$ from `boxCox` and is also interpretable (i.e. $\lambda = 0.5$). Assuming we proceed with this, we would find a $\lambda$ for `Fertility` that is significantly different from 1 using the `boxTidwell` formula - $\lambda = 1.5$. To make it more interpretable I would have chosen $\lambda = 2$ instead. However, given the 95% confidence interval for the response $\lambda$ includes 1 (as seen below), I wouldn't feel comfortable choosing any transformation in the first place. Thus, we would be back looking to find predictor $\lambda s$ with an untransformed response.
 
-
-```{r}
-#boxCox(modern_lm)
-#powerTransform(modern_lm)
-UN3_bxtdw2 = UN3_bxtdw
-UN3_bxtdw2["ModernC"] = sqrt(UN3_bxtdw["ModernC"])
-#boxTidwell()
+```{r, echo=FALSE, warning=FALSE, results='hide'}
+boxCox(modern_lm)
+powerTransform(modern_lm)
+boxTidwell(sqrt(ModernC) ~ Pop + PPgdp + Fertility, other.x = ~ Change + Frate + Purban, data = UN3_bxtdw)
 ```
-
-10.  Are there any outliers or influential points in the data?  Explain.  If so, refit the model after removing any outliers and comment on residual plots.
-
+  
+  
+\textbf{10.  Are there any outliers or influential points in the data?  Explain.  If so, refit the model after removing any outliers and comment on residual plots.}  
+  
+There are outliers but no significant influential points in the data. In the original untransformed data, China and India looked as potential influential points due to their high leverage in the residual plots. However, Cook and we had Cook's Island. However, after we transform the data
 
 ```{r}
 
@@ -241,8 +242,8 @@ which takes the form similar to $Y = \hat \beta_0 + \hat \beta_1 X_1$. Thus we c
 If you multiply both sides by $X_{j}^T$ and rearrange the scalars you get,
 \begin{gather*}
 X_{j}^T (I-H) Y = X_{j}^T \vec{1}\hat \beta_0 +  \underbrace{X_{j}^T (I-H)X_j\big[ X_{j}^T (I-H) X_{j}\big]^{-1}}_{I} X_{j}^T (I-H)Y \\[1ex]
-\therefore \qquad X_{j}^T (I-H) Y = \sum{X_{i,j}}_{i=1}^n \hat \beta_0 + X_{j}^T (I-H) Y\\[1ex]
-\sum{X_{i,j}}_{i=1}^n \hat \beta_0 = X_{j}^T (I-H) Y - X_{j}^T (I-H) Y = 0
+\therefore \qquad X_{j}^T (I-H) Y = \sum_{i=1}^n X_{i,j} \hat \beta_0 + X_{j}^T (I-H) Y\\[1ex]
+\sum_{i=1}^n X_{i,j} \hat \beta_0 = X_{j}^T (I-H) Y - X_{j}^T (I-H) Y = 0
 \end{gather*}
 
 Thus we can see that the only way this relationship can only be zero is if $\hat \beta_0 = 0$ (i.e. the intercept is $0$).
