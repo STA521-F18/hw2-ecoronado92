@@ -107,7 +107,7 @@ Finally, we can see that a linear combination of the predictor variables could b
 \textbf{4.  Use the `lm()` function to perform a multiple linear regression with `ModernC` as the response and all other variables as the predictors, using the formula `ModernC ~ .`, where the `.` includes all remaining variables in the dataframe.  Create  diagnostic residual plot from the linear model object and comment on results regarding assumptions.  How many observations are used in your model fitting?}  
   
 From from the initial comparisons in \textbf{Fig3} we know that the predictor variables have a linear relationship which allows us to interpret these multiple regression diagnostic plots as those of a simple regression model. \textit{\textbf{Note}: the above linear model and diagnostic plots were done using the original, non-transformed data}  
-Using the `summary` function, we notice that the `lm` function automatically excluded 85 observations. Therefore, the multiple regression model was done 125 observations. Looking at \textbf{Fig 5} we can notice a minor heteroscedastic trend on the top-left plot, which shows that the variances is non-constant. However, this trend isn't that significant thus our assumptions of linearity still hold. On the Normal Q-Q plot we observe some points diverging from the normal line - especially on the top-right - which means our data follows a skewd normal distribution. Yet, our linerity assumption still holds as the observed standard deviations seem to follow the theortical ones. Similarly, show that the errors for some observations are above 1 standard deviation and there are observations having a higher influence on the fit (i.e. China and India). However, these aren't significant enough to discard our assumptions of linearity. Overall, Cook's Island, Azerbaijian, Poland, China, and India are likely candidates for outlier testing given these observations tend to be farther away from the rest of the data or are highly influencial.  
+Using the `summary` function, we notice that the `lm` function automatically excluded 85 observations. Therefore, the multiple regression model was done 125 observations. Looking at \textbf{Fig 5} we can notice a minor heteroscedastic trend on the top-left plot, which shows that the variances is non-constant. However, this trend isn't that significant thus our assumptions of linearity still hold. On the Normal Q-Q plot we observe some points diverging from the normal line - especially on the top-right - which means our data follows a skewd normal distribution. Yet, our linerity assumption still holds as the observed standard deviations seem to follow the theortical ones. Similarly, show that the errors for some observations are above 1 standard deviation and there are observations having a higher influence on the fit (i.e. China and India). However, these aren't significant enough to discard our assumptions of linearity. Overall, Cook Islands, Azerbaijian, Poland, China, and India are likely candidates for outlier testing given these observations tend to be farther away from the rest of the data or are highly influencial.  
 
 \pagebreak
 \textit{\textbf{Fig 5. Residual Plots for a Linear Model Fit of `ModernC`}}  
@@ -154,10 +154,10 @@ boxTidwell(ModernC ~  Purban  , other.x = ~ Change + PPgdp + Pop +Frate + Fertil
 From the plot below we can observe the MLE for $\lambda$ using `boxCox`. Since the 95% confidence interval doesn't include 1 and the `boxCox` $\lambda = 0.76$ I decided to use the closest $\lambda$ that would still allow for interpretable results $\lambda = 0.5$. This was train of thought is justified given we want a model that improved by a transformation, however we don't want it to be complicated when interpreting results.
 
 ```{r boxCox, echo=FALSE, fig.width=8, fig.height=5}
-modern_prlog_lm = lm(ModernC ~ ., data = UN3_log[,c(-3,-5,-10)]) #lm w transformed PPgdp,Pop
+modern_lm2 = lm(ModernC ~ ., data = UN3_log[,c(-3,-5,-10)]) #lm w transformed PPgdp,Pop
 #summary(modern_prlog_lm)
-boxCox(modern_prlog_lm)
-lambda_y = powerTransform(modern_prlog_lm)$lambda
+boxCox(modern_lm2)
+lambda_y = powerTransform(modern_lm2)$lambda
 ```
 
 \textbf{8.  Fit the regression using the transformed variables.  Provide residual plots and added variables plots and comment.  If you feel that you need additional transformations of either the response or predictors, repeat any steps until you feel satisfied.}  
@@ -168,7 +168,7 @@ Compared to \textbf{Fig 5}, we can observe two improvements: 1) we don't see the
 
 \textit{\textbf{Fig 7. Residual Plots for a Transformed Linear Model Fit of `ModernC`}}  
 ```{r Q8 part 1, echo=FALSE, fig.width=8, fig.height=6}
-modern_lm2 = lm(ModernC ~ ., data = UN3_log[,c(-3,-5,-10)])
+modern_lm2 = lm(ModernC ~ Change + logPPgdp + Frate + logPop + Fertility + Purban, data = UN3_log[,c(-3,-5,-10)])
 summary(modern_lm2)
 par(mfrow=c(2,2))
 plot(modern_lm2, ask=F)
@@ -193,10 +193,11 @@ boxTidwell(sqrt(ModernC) ~ Pop + PPgdp + Fertility, other.x = ~ Change + Frate +
   
 \textbf{10.  Are there any outliers or influential points in the data?  Explain.  If so, refit the model after removing any outliers and comment on residual plots.}  
   
-There are outliers but no significant influential points in the data. In the original untransformed data, China and India looked as potential influential points due to their high leverage in the residual plots. However, Cook and we had Cook's Island. However, after we transform the data
+I used the Bonferroni Correction to test for outliers where $p_i < \frac{\alpha}{n}$ where $\alpha = 0.5$. From this test no observations are signficant having a p-value less than 0.05 [results and code hidden]. Regarding influential points, we can observe from \textbf{Fig 7} that even though with the transformations there are points with high leverage such as `Cook Islands`, `Vanuatu` and `Kuwait`. However, none are influential points.
 
-```{r}
-
+```{r, results='hide' }
+pval = 2*(1 - pt(abs(rstudent(modern_lm2)), modern_lm2$df -1))
+rownames(na.omit(UN3_log))[pval < .05/nrow(na.omit(UN3_log))]
 ```
 
 ## Summary of Results
@@ -205,7 +206,13 @@ There are outliers but no significant influential points in the data. In the ori
 
 
 ```{r}
-
+modern_lm2_noPurban = lm(ModernC ~ Change + logPPgdp + Frate + logPop + Fertility, data = UN3_log)
+anova(modern_lm2_noPurban, modern_lm2)
+coef_df = as.data.frame(confint(modern_lm2_noPurban))
+coef_df["logPop",] = exp(coef_df["logPop",])
+coef_df["logPPgdp",] = exp(coef_df["logPPgdp",])
+rownames(coef_df) = rownames(confint(modern_lm))[-7] #Me being lazy
+kable(coef_df, format = "markdown", col.names = c(paste("2.5%"), paste("97.5%")), digits = 3)
 ```
 
 
@@ -249,3 +256,18 @@ X_{j}^T (I-H) Y = X_{j}^T \vec{1}\hat \beta_0 +  \underbrace{X_{j}^T (I-H)X_j\bi
 Thus we can see that the only way this relationship can only be zero is if $\hat \beta_0 = 0$ (i.e. the intercept is $0$).
 
 14. For multiple regression with more than 2 predictors, say a full model given by `Y ~ X1 + X2 + ... Xp`   we create the added variable plot for variable `j` by regressing `Y` on all of the `X`'s except `Xj` to form `e_Y` and then regressing `Xj` on all of the other X's to form `e_X`.  Confirm that the slope in a manually constructed added variable plot for one of the predictors  in Ex. 10 is the same as the estimate from your model. 
+
+```{r , echo=FALSE}
+e_Y = residuals(modern_lm2_noPurban)
+e_Purban = residuals(lm(Purban ~ Change + logPPgdp + Frate + 
+                          logPop + Fertility, data = na.omit(UN3_log)))
+
+e_Y_Purban = lm(e_Y ~ e_Purban)
+
+df = data.frame(Original_coef = modern_lm2$coefficients["Purban"],
+                avPlot_coef = e_Y_Purban$coefficients["e_Purban"], row.names = "Coeffs")
+
+kable(df, format="markdown", col.names = c("Original", " A-V Plot LM"))
+
+avPlots(e_Y_Purban, main = "Fig 9. Added-Variable Plot for `ModernC` ~ X w/o `Purban` vs `Purban` ~ X w/o `Purban`")
+```
