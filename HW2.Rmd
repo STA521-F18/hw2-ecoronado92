@@ -193,7 +193,7 @@ boxTidwell(sqrt(ModernC) ~ Pop + PPgdp + Fertility, other.x = ~ Change + Frate +
   
 \textbf{10.  Are there any outliers or influential points in the data?  Explain.  If so, refit the model after removing any outliers and comment on residual plots.}  
   
-I used the Bonferroni Correction to test for outliers where $p_i < \frac{\alpha}{n}$ where $\alpha = 0.5$. From this test no observations are signficant having a p-value less than 0.05 [results and code hidden]. Regarding influential points, we can observe from \textbf{Fig 7} that even though with the transformations there are points with high leverage such as `Cook Islands`, `Vanuatu` and `Kuwait`. However, none are influential points.
+I used the Bonferroni Correction to test for outliers where $p_i < \frac{\alpha}{n}$ where $\alpha = 0.5$. From this test no observations have signficant p-value [results and code hidden], thus none can be discarded as outliers. Regarding influential points, we can observe from \textbf{Fig 7} that even though with the transformations there are points with high leverage such as `Cook Islands`, `Vanuatu` and `Kuwait`. However, none are influential points.
 
 ```{r, results='hide' }
 pval = 2*(1 - pt(abs(rstudent(modern_lm2)), modern_lm2$df -1))
@@ -202,16 +202,23 @@ rownames(na.omit(UN3_log))[pval < .05/nrow(na.omit(UN3_log))]
 
 ## Summary of Results
 
-11. For your final model, provide summaries of coefficients with 95% confidence intervals in a nice table with interpretations of each coefficient.  These should be in terms of the original units! 
+11. For your final model, provide summaries of coefficients with 95% confidence intervals in a nice table with interpretations of each coefficient.  These should be in terms of the original units!  
+Before finalizing the model and deciding which predictors to include, I tested whether keeping `Purban` would improve the model vs. a model without `Purban`. To do so I used an ANOVA to test $H_0$ - i.e. whether $\beta_6 = 0$ or not. From the resulting p-value, we fail to reject $H_0$ and therefore have excluded `Purban` from the final model,
 
+$$ModernC = \beta_0 + \beta_1Change + \beta_2logPPgdp + \beta_3Frate + \beta_4logPop + \beta_5Frate $$
 
-```{r}
+```{r, echo=FALSE}
 modern_lm2_noPurban = lm(ModernC ~ Change + logPPgdp + Frate + logPop + Fertility, data = UN3_log)
 anova(modern_lm2_noPurban, modern_lm2)
+```
+  
+  
+Below I've provided a summary table of the coefficients with 95% confidence interval in terms of the original units.
+```{r, echo=FALSE}
 coef_df = as.data.frame(confint(modern_lm2_noPurban))
 coef_df["logPop",] = exp(coef_df["logPop",])
 coef_df["logPPgdp",] = exp(coef_df["logPPgdp",])
-rownames(coef_df) = rownames(confint(modern_lm))[-7] #Me being lazy
+rownames(coef_df) = rownames(confint(modern_lm))[-7] #Removing Purban
 kable(coef_df, format = "markdown", col.names = c(paste("2.5%"), paste("97.5%")), digits = 3)
 ```
 
